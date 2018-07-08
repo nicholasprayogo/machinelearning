@@ -20,15 +20,11 @@ cancer = load_breast_cancer()
 print(cancer.keys())
 #IMPORTANT TO ANALYSE DATA BEFORE ACTUALLY IMPLEMENTING ALGORITHMS
 
-# You should write your whole answer within the function provided. The autograder will call
-# this function and compare the return value against the correct solution value
+
 def no_features():
     # This function returns the number of features of the breast cancer dataset, which is an integer. 
     # The assignment question description will tell you the general format the autograder is expecting
     return len(cancer['feature_names'])
-# You can examine what your function returns by calling it in the cell. If you have questions
-# about the assignment formats, check out the discussion forums for any FAQs
-
 
 #print(np.concatenate((cancer['data'],cancer['target']),axis=1))
 
@@ -215,6 +211,7 @@ print("Optimized k value is {}".format(k_optim[-1]), "with accuracy of : {}".for
 k_df= pd.DataFrame({'k': k_vals, 'scores': knn_scores})
 # we use dictionaries in this case to build the dataframe
 
+#plot
 k_df.plot('k', 'scores', kind='line')
 
 plt.show()
