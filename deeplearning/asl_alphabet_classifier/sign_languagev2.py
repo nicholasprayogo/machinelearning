@@ -25,7 +25,7 @@ print(df.shape)
 print(len(df.columns))
 
 print(df['label'].nunique())
-
+n=0
 #Visualize data
 for i in range(25):
     image=np.array(df.iloc[n,1:len(df.columns)])
@@ -37,7 +37,6 @@ for i in range(25):
     plt.gca().axes.get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     n+=1
-
 
 plt.tight_layout()
 plt.show()
@@ -74,7 +73,6 @@ y_train= y_train.reshape(-1,1)
 ohe = OneHotEncoder()
 y_train = ohe.fit_transform(y_train).toarray()
 y_test= y_test.reshape(-1,1)
-ohe = OneHotEncoder()
 y_test = ohe.fit_transform(y_test).toarray()
 
 print(y_train)
@@ -91,43 +89,52 @@ import tensorflow as tf
 
 tf.reset_default_graph()
 
-# Make sure the data is normalized
-img_prep = ImagePreprocessing()
-img_prep.add_featurewise_stdnorm()
+# # Make sure the data is normalized
+# img_prep = ImagePreprocessing()
+# img_prep.add_featurewise_stdnorm()
+#
+# # Create extra synthetic training data by flipping, rotating and blurring the
+# # images on our data set.
+# img_aug = ImageAugmentation()
+# img_aug.add_random_flip_leftright()
+# img_aug.add_random_rotation(max_angle=25.)
+# img_aug.add_random_blur(sigma_max=3.)
 
-# Create extra synthetic training data by flipping, rotating and blurring the
-# images on our data set.
-img_aug = ImageAugmentation()
-img_aug.add_random_flip_leftright()
-img_aug.add_random_rotation(max_angle=25.)
-img_aug.add_random_blur(sigma_max=3.)
+config = tf.ConfigProto(log_device_placement=True)
+#config.gpu_options.per_process_gpu_memory_fraction = 0.01
+with tf.Session(config=config) as sess:
+        #make sure input_data 's placeholder shape corresponds to model shape
+        print("1")
+        network = input_data(shape=[None, 28,28,1])
+        #shape: None (Placeholder for number of training sets in batch), 28 by 28 pixels, 1 channel (greyscale)
+        #now network becomes a 4D tensor with dimensions [batch, height, width, in_channels]
+        print("2")
+        network = conv_2d(network, 16, [5,5], activation='relu')
+        #now network becomes a 4D tensor with dimensions [batch, new height, new width, n_filters]
+        print("3")
+        network = max_pool_2d(network, [2,2])
+        #filter size [2,2], stride is implied: 2
+        print("4")
+        network = conv_2d(network, 64, 3, activation='relu')
+        #use relu to account for non-linearity
+        print("5")
+        network = max_pool_2d(network, 2)
+        print("6")
+        #same as [2,2]
+        network = fully_connected(network, 512, activation='relu')
+        print("7")
+        network = dropout(network, 0.5)
+        print("8")
+        network = fully_connected(network, 24, activation='softmax')
+        print("9")
+        network = regression(network, optimizer='sgd', loss='categorical_crossentropy',learning_rate=0.01)
+        #always remember to test different optimizers, set learning rates accordingly too
+        print("10")
+        model = DNN(network, tensorboard_verbose=3, checkpoint_path='sign_language_model.ckpt')
+        print("11")
+        model.fit(x_train, y_train, n_epoch=10, shuffle=True, validation_set=(x_test, y_test),show_metric=True, batch_size=20)
+        print("12")
+        # feed dict { 'inputs': x_train } { 'targets': y_train }
+        model.save("sign-language-classifier.tfl")
 
-#make sure input_data 's placeholder shape corresponds to model shape
-network = input_data(shape=[None, 28,28,1])
-#shape: None (Placeholder for number of training sets in batch), 28 by 28 pixels, 1 channel (greyscale)
-#now network becomes a 4D tensor with dimensions [batch, height, width, in_channels]
-network = conv_2d(network, 16, [5,5], activation='relu')
-#now network becomes a 4D tensor with dimensions [batch, new height, new width, n_filters]
-network = max_pool_2d(network, [2,2])
-#filter size [2,2], stride is implied: 2
-network = conv_2d(network, 64, 3, activation='relu')
-#use relu to account for non-linearity
-network = max_pool_2d(network, 2)
-#same as [2,2]
-network = fully_connected(network, 512, activation='relu')
-network = dropout(network, 0.5)
-network = fully_connected(network, 24, activation='softmax')
-network = regression(network, optimizer='sgd', loss='categorical_crossentropy',learning_rate=0.01)
-#always remember to test different optimizers, set learning rates accordingly too
-
-model = DNN(network, tensorboard_verbose=3)
-# #'sign-language-classifier.tfl.ckpt'
-
-model.fit(x_train, y_train, n_epoch=100, shuffle=True, validation_set=(x_test, y_test),
-           show_metric=True, batch_size=20)
-
-# feed dict { 'inputs': x_train } { 'targets': y_train }
-model.save("sign-language-classifier.tfl")
-
-print(DNN.evaluate(model, x_test, y_test, batch_size=96))
-
+        print(DNN.evaluate(model, x_test, y_test, batch_size=96))
