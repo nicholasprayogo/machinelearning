@@ -14,35 +14,30 @@ from sklearn.neighbors import KNeighborsClassifier
 
 df=pd.read_csv('sign_mnist_train.csv')
 df=pd.DataFrame(df)
-# x=np.array(df.iloc[:,1:len(df.columns)])
-# grey = []
-# for i in range(0, x.shape[0]):
-#     grey.append(1)
-# df['grey']=grey
-print(df)
-print(df.head())
-print(df.shape)
-print(len(df.columns))
 
-print(df['label'].nunique())
-n=0
+def data_insights():
+    print(df)
+    print(df.head())
+    print(df.shape)
+    print(len(df.columns))
+    print(df['label'].nunique())
+
 #Visualize data
-for i in range(25):
-    image=np.array(df.iloc[n,1:len(df.columns)])
-    A = df.iloc[n,0]
-    B = np.reshape(image, (28, 28))
-    plt.subplot(5,5,n+1)
-    plt.imshow(B, 'gray', vmin=0, vmax=255)
-    plt.title(chr(97+A))
-    plt.gca().axes.get_xaxis().set_visible(False)
-    plt.gca().get_yaxis().set_visible(False)
-    n+=1
-
-plt.tight_layout()
-plt.show()
-#plt.savefig('sign_data.png')
-
-
+def visualize():
+    n=0
+    for i in range(25):
+        image=np.array(df.iloc[n,1:len(df.columns)])
+        A = df.iloc[n,0]
+        B = np.reshape(image, (28, 28))
+        plt.subplot(5,5,n+1)
+        plt.imshow(B, 'gray', vmin=0, vmax=255)
+        plt.title(chr(97+A))
+        plt.gca().axes.get_xaxis().set_visible(False)
+        plt.gca().get_yaxis().set_visible(False)
+        n+=1
+    plt.tight_layout()
+    plt.show()
+    #plt.savefig('sign_data.png')
 
 def split():
     # n=df.shape[0]
@@ -76,9 +71,8 @@ y_test= y_test.reshape(-1,1)
 y_test = ohe.fit_transform(y_test).toarray()
 
 print(y_train)
-#
-#
-#preprocessing
+
+#import tflearn methods
 from tflearn.layers.core import input_data, fully_connected, dropout
 from tflearn.layers.conv import conv_2d, max_pool_2d
 from tflearn.models.dnn import DNN
@@ -87,7 +81,7 @@ from tflearn.data_augmentation import ImageAugmentation
 from tflearn.layers.estimator import regression
 import tensorflow as tf
 
-tf.reset_default_graph()
+
 
 # # Make sure the data is normalized
 # img_prep = ImagePreprocessing()
@@ -100,41 +94,41 @@ tf.reset_default_graph()
 # img_aug.add_random_rotation(max_angle=25.)
 # img_aug.add_random_blur(sigma_max=3.)
 
+tf.reset_default_graph()
 config = tf.ConfigProto(log_device_placement=True)
-#config.gpu_options.per_process_gpu_memory_fraction = 0.01
-with tf.Session(config=config) as sess:
+
+def build_model():
+    #config.gpu_options.per_process_gpu_memory_fraction = 0.01
+    with tf.Session(config=config) as sess:
         #make sure input_data 's placeholder shape corresponds to model shape
-        print("1")
         network = input_data(shape=[None, 28,28,1])
         #shape: None (Placeholder for number of training sets in batch), 28 by 28 pixels, 1 channel (greyscale)
         #now network becomes a 4D tensor with dimensions [batch, height, width, in_channels]
-        print("2")
         network = conv_2d(network, 16, [5,5], activation='relu')
         #now network becomes a 4D tensor with dimensions [batch, new height, new width, n_filters]
-        print("3")
         network = max_pool_2d(network, [2,2])
         #filter size [2,2], stride is implied: 2
-        print("4")
         network = conv_2d(network, 64, 3, activation='relu')
         #use relu to account for non-linearity
-        print("5")
         network = max_pool_2d(network, 2)
-        print("6")
         #same as [2,2]
         network = fully_connected(network, 512, activation='relu')
-        print("7")
         network = dropout(network, 0.5)
-        print("8")
         network = fully_connected(network, 24, activation='softmax')
-        print("9")
         network = regression(network, optimizer='sgd', loss='categorical_crossentropy',learning_rate=0.01)
         #always remember to test different optimizers, set learning rates accordingly too
-        print("10")
         model = DNN(network, tensorboard_verbose=3, checkpoint_path='sign_language_model.ckpt')
-        print("11")
-        model.fit(x_train, y_train, n_epoch=10, shuffle=True, validation_set=(x_test, y_test),show_metric=True, batch_size=20)
-        print("12")
-        # feed dict { 'inputs': x_train } { 'targets': y_train }
-        model.save("sign-language-classifier.tfl")
 
-        print(DNN.evaluate(model, x_test, y_test, batch_size=96))
+    return(model)
+
+def train():
+    model=build_model()
+    model.fit(x_train, y_train, n_epoch=10, shuffle=True, validation_set=(x_test, y_test),show_metric=True, batch_size=20)
+    # feed dict { 'inputs': x_train } { 'targets': y_train }
+    model.save("sign-language-classifier.tfl")
+    return(model)
+
+visualize()
+train()
+
+print(DNN.evaluate(model, x_test, y_test, batch_size=96))
